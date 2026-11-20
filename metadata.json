@@ -1,0 +1,7 @@
+{
+  "uuid": "samba-control@local",
+  "name": "Samba Control",
+  "description": "Samba systemd controls, shares, sessions and diagnostics",
+  "shell-version": ["46", "47", "48", "49"],
+  "settings-schema": "org.gnome.shell.extensions.samba-control"
+}

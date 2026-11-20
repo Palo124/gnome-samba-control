@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.samba-control"
+          path="/org/gnome/shell/extensions/samba-control/">
+    <key name="icon-name" type="s">
+      <default>'folder-publicshare-symbolic'</default>
+    </key>
+    <key name="panel-section" type="s">
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <default>'right'</default>
+    </key>
+    <key name="panel-position" type="i">
+      <range min="1" max="99"/>
+      <default>1</default>
+    </key>
+  </schema>
+</schemalist>

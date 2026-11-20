@@ -1,62 +1,69 @@
-# Samba Control (GNOME Shell 46–49 source target)
+# Samba Control
 
-A minimal, locally installed extension. It uses a fixed `smbd.service` target.
+Manage the local Samba file server from the GNOME top bar. The extension shows the current status of `smbd.service` and whether it is enabled at startup.
 
-## Installation
+## Features
 
-```bash
-mkdir -p ~/.local/share/gnome-shell/extensions/samba-control@local
-cp -r metadata.json extension.js prefs.js schemas ~/.local/share/gnome-shell/extensions/samba-control@local/
-glib-compile-schemas --strict ~/.local/share/gnome-shell/extensions/samba-control@local/schemas
-gnome-extensions disable samba-control@local 2>/dev/null || true
-gnome-extensions enable samba-control@local
-```
+- Start, stop, restart, or reload Samba and control whether it starts at boot.
+- View configured shares and active SMB sessions.
+- Validate the Samba configuration and view up to 10 recent service log entries.
+- Choose from eight top-bar icons with a preview, and adjust the icon's section and position.
 
-If GNOME doesn't discover a new extension, log out and back in, then enable it.
+## Requirements
 
-## Top-bar preferences
+- [metadata.json](metadata.json) lists GNOME Shell 46–49 as the target range. The extension was tested only on GNOME Shell 46.0 on the author's machine.
+- A local Samba installation managed by systemd as `smbd.service`.
+- `systemctl`, `journalctl`, `testparm`, `smbstatus`, and `pkexec` at their standard `/usr/bin` paths. Session viewing requires a Samba version that supports `smbstatus --json`.
+- The `gnome-extensions` and `glib-compile-schemas` commands for installation. A running Polkit authentication agent is required for privileged actions.
 
-Open **Preferences** from the Samba Control menu or run `gnome-extensions prefs samba-control@local`.
-Choose an icon, a panel section, and a position within that section. Position 1 puts the icon first in the section, and positions beyond the available slots put it last. Changes are saved and applied immediately.
+## Install from source
 
-## Privilege model
-
-- Reading systemd service state, testparm, and regular journal output requires no elevation.
-- Every service modification executes `/usr/bin/pkexec /usr/bin/systemctl ACTION smbd.service`.
-- Authenticated sessions explicitly execute `/usr/bin/pkexec /usr/bin/smbstatus --json`.
-- No password is accepted or stored by this extension. The system Polkit agent handles authentication.
-- No sudoers, auth-bypass Polkit rules, shell commands, or elevated user-writable helper scripts.
-- Polkit may cache authentication temporarily according to your system policies. A new prompt **for each** operation is therefore not guaranteed.
-- Samba session metadata contains usernames and client addresses. Display it only on a trusted desktop.
-- Inactive Samba connections may not always be visible from unprivileged `smbstatus`. Use the authenticated read if needed.
-- GNOME Shell extensions run *inside GNOME Shell*. Avoid placing broad config mutation powers here.
-
-## Known limitations
-
-- Not tested in your particular Ubuntu/GNOME environment. Verify `gnome-shell --version` and executable paths (`command -v pkexec smbstatus testparm journalctl systemctl`).
-- If the Polkit agent isn't registered, service actions fail rather than opening a password dialog.
-- `/usr/bin/smbstatus` and `/usr/bin/testparm` are typical Ubuntu paths but may differ.
-- 'Enable at boot' and 'Disable at boot' do not change the current running state.
-- Logs are unprivileged and may be incomplete.
-- No SMB user management, share editing, ACL modification, or disconnect-client features. Those require a separate privileged backend with narrowly scoped operations, validation, and backup/rollback.
-- Starting/Stopping/restarting `smbd` can interrupt active transfers.
-- Extension is targeted at GNOME 46–49 APIs. Listed versions are not a test guarantee.
-
-## Debugging
+Clone the repository, then copy the extension into your user data directory and compile its settings schema.
 
 ```bash
-journalctl --user -b -o cat | grep -i 'samba control'
-systemctl is-active smbd.service
-systemctl is-enabled smbd.service
-command -v pkexec smbstatus testparm
+git clone https://github.com/Palo124/gnome-samba-control.git
+cd gnome-samba-control
 ```
 
-## Sessions UI behavior (fixed)
+```bash
+extension_dir="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/extensions/samba-control@palo124"
+mkdir -p "$extension_dir/schemas" &&
+    cp metadata.json extension.js prefs.js "$extension_dir/" &&
+    cp schemas/*.gschema.xml "$extension_dir/schemas/" &&
+    glib-compile-schemas --strict "$extension_dir/schemas"
+```
 
-- Open **Active sessions** and explicitly choose **Refresh sessions** or **Authenticate to read sessions**.
-- Password prompt is managed by Polkit; after authenticating, reopen the menu to read the results.
-- Opening or closing the menu no longer resets or overwrites the previous authenticated result.
-- The view distinguishes 0 sessions, command failures, missing JSON, and parsing errors.
-- A successful authenticated read does **not** imply active clients exist.
+Log out and back in so GNOME Shell loads the installed files. Then enable the extension from the **Extensions** app or run:
 
-To verify, compare `sudo smbstatus --json` in a terminal while an SMB client is actually connected.
+```bash
+gnome-extensions enable samba-control@palo124
+```
+
+To update, pull the latest changes in your checkout, repeat the copy and schema compilation steps, and log out and back in.
+
+## Use Samba Control
+
+Open the shared-folder icon in the top bar.
+
+- **Service controls** manages the running service and its boot setting. **Enable at boot** and **Disable at boot** affect future boots. Stopping or restarting Samba can interrupt active transfers.
+- **Configured shares** lists shares from the Samba configuration.
+- **Active sessions** lets you refresh session details or choose **Authenticate to read sessions** if your user has limited access. After authenticating, reopen the menu to see the result.
+- **Diagnostics** runs `testparm` and shows recent service logs that your user can read.
+- **Preferences** lets you choose an icon and place it in the left, center, or right section of the top bar. Position 1 puts it first in that section. A position beyond the available slots puts it last. Changes apply immediately and are saved across sessions.
+
+You can also open preferences with `gnome-extensions prefs samba-control@palo124`.
+
+## Permissions
+
+Service changes and authenticated session reads use `pkexec`. The system Polkit agent handles authentication. Your Polkit configuration determines when to prompt. Session details may include usernames and client addresses.
+
+## Troubleshooting
+
+Check whether GNOME recognizes the extension, whether Samba's systemd unit is available, and whether the required tools are installed.
+
+```bash
+gnome-extensions info samba-control@palo124
+systemctl status smbd.service
+command -v pkexec smbstatus testparm journalctl systemctl
+journalctl --user -b -o cat | grep -iE 'samba-control|samba control'
+```

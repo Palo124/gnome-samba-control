@@ -1,5 +1,5 @@
 {
-  "uuid": "samba-control@local",
+  "uuid": "samba-control@palo124",
   "name": "Samba Control",
   "description": "Samba systemd controls, shares, sessions and diagnostics",
   "shell-version": ["46", "47", "48", "49"],
